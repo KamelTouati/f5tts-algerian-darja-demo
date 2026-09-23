@@ -10,11 +10,17 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Audio files & temporary outputs
+# Audio, video & media outputs
 *.wav
 *.mp3
 *.ogg
 *.flac
+*.mp4
+*.mov
+*.webm
+*.png
+*.jpg
+*.jpeg
 outputs/
 f5tts_test/
 f5tts_darja_winning_outputs/
