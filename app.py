@@ -17,7 +17,7 @@ import streamlit as st
 
 
 def ensure_package(module_name: str, pypi_name: str = None, extra_args: list = None):
-    """Ensure a Python module can be imported. If missing, install it dynamically via pip."""
+    """Ensure a Python module can be imported. If missing, install it dynamically via uv or pip."""
     import importlib
     try:
         return importlib.import_module(module_name)
@@ -27,17 +27,50 @@ def ensure_package(module_name: str, pypi_name: str = None, extra_args: list = N
     if pypi_name is None:
         pypi_name = module_name.replace("_", "-")
 
-    cmd = [sys.executable, "-m", "pip", "install", "--no-cache-dir", "-q"]
-    if extra_args:
-        cmd.extend(extra_args)
-    cmd.append(pypi_name)
+    cmds = []
+    # 1. uv pip install (Streamlit Cloud's default fast installer)
+    uv_bin = shutil.which("uv")
+    if not uv_bin:
+        for candidate in ["/home/adminuser/.cargo/bin/uv", "/usr/local/bin/uv", "/root/.cargo/bin/uv"]:
+            if Path(candidate).exists():
+                uv_bin = candidate
+                break
+    if uv_bin:
+        uv_cmd = [str(uv_bin), "pip", "install", "--python", sys.executable, pypi_name]
+        if extra_args:
+            uv_cmd.extend(extra_args)
+        cmds.append(uv_cmd)
 
-    try:
-        subprocess.run(cmd, check=True, timeout=180)
-        importlib.invalidate_caches()
-        return importlib.import_module(module_name)
-    except Exception:
-        return None
+    # 2. python -m pip
+    py_cmd = [sys.executable, "-m", "pip", "install", "--no-cache-dir", "-q"]
+    if extra_args:
+        py_cmd.extend(extra_args)
+    py_cmd.append(pypi_name)
+    cmds.append(py_cmd)
+
+    # 3. standard pip
+    pip_bin = shutil.which("pip")
+    if pip_bin:
+        pip_cmd = [str(pip_bin), "install", "--no-cache-dir", "-q"]
+        if extra_args:
+            pip_cmd.extend(extra_args)
+        pip_cmd.append(pypi_name)
+        cmds.append(pip_cmd)
+
+    for cmd in cmds:
+        try:
+            res = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
+            if res.returncode == 0:
+                importlib.invalidate_caches()
+                try:
+                    return importlib.import_module(module_name)
+                except ImportError:
+                    pass
+        except Exception:
+            continue
+
+    return None
+
 
 
 try:
