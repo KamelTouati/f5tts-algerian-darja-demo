@@ -8,12 +8,13 @@ Fine-tuned from [IbrahimSalah/Arabic-F5-TTS-v2](https://huggingface.co/IbrahimSa
 
 ## Features
 
-- **Interactive Streamlit Web Interface**: Fast speech synthesis from text with waveform display and WAV download.
-- **Winning Condition Profiles**:
+- **Multi-Variation Audio Generation**: Generates 10 distinct audio candidates per synthesis request, varying voice profiles (Kahwa, Rawi, Loubna), diffusion steps (NFE 32–64), CFG strengths (1.5–2.5), and playback speeds (0.88–1.0x).
+- **Interactive 2-Column Selection Matrix**: Audio variations stream into a clean 2-column comparative grid with inline audio players, latency metrics, and individual WAV download buttons so the user can pick the best result.
+- **Calibrated Voice Profiles**:
   - **Kahwa Podcast (Conversational)**: Spontaneous everyday podcast cadence, calibrated for colloquial expressions and code-switching (NFE=48, CFG=1.8, Speed=0.95).
   - **Rawi Folklore (Male Storyteller)**: Deep, resonant oral narrative cadence (NFE=48, CFG=2.0, Speed=0.92).
   - **Loubna Stories (Studio Female)**: Clean studio-recorded voice with high signal-to-noise ratio.
-- **Zero-Shot Voice Cloning**: Upload any 3–10 second audio clip to synthesize Darja in that speaker's voice.
+- **Zero-Shot Voice Cloning**: Upload any 3–10 second audio clip to synthesize Darja in that speaker's voice (automatically generates 3 additional variations).
 - **20 Curated Benchmark Phrases**: One-click sample test phrases spanning conversational, technology, street inquiries, proverbs, and folklore.
 - **No G2P Bottleneck**: Character-level modeling handles Maghrebi consonant clusters, short-vowel elisions, and French loanwords naturally.
 
@@ -22,14 +23,10 @@ Fine-tuned from [IbrahimSalah/Arabic-F5-TTS-v2](https://huggingface.co/IbrahimSa
 ## Directory Structure
 
 ```text
-├── app.py              # Streamlit Web Application (Production / Cloud Ready)
-├── test_kaggle.py      # Automated 20-phrase Kaggle notebook evaluation runner
-├── infer.py            # Command-line CLI synthesis script
-├── train_kaggle.py     # Multi-session Kaggle background training runner with auto-sync
-├── train.py            # Local / VM training pipeline runner
-├── prepare_dataset.py  # OddAdmix audio preprocessing, filtering, and normalization
+├── app.py              # Streamlit Web Application (10-try synthesis & UI)
 ├── requirements.txt    # Python package dependencies
 ├── packages.txt       # Linux system dependencies (ffmpeg, libsndfile1)
+├── .gitignore          # Repository ignore rules
 └── README.md           # Documentation
 ```
 
@@ -82,15 +79,20 @@ Hugging Face Spaces provides dynamic access to free NVIDIA A100/H100 GPUs via Ze
 
 ---
 
-## Command-Line Inference (`infer.py`)
+## Command-Line Inference
 
-To synthesize speech directly from the terminal:
+To synthesize speech directly using the F5-TTS CLI:
 
 ```bash
-python infer.py \
+python -m f5_tts.infer.infer_cli \
+    --model "F5TTS_Base" \
+    --ckpt_file "checkpoints/f5tts-algerian-darja/model_last.pt" \
+    --vocab_file "checkpoints/f5tts-algerian-darja/vocab.txt" \
+    --ref_audio "assets/kahwa_ref.wav" \
+    --ref_text "..." \
     --gen_text "السلام عليكم خاوتي، وش أحوالكم إن شاء الله راكم ملاح، هادا تيست للمودال الجديد." \
-    --output_file "./output_darja.wav" \
-    --nfe_steps 48 \
+    --output_file "output_darja.wav" \
+    --nfe_step 48 \
     --cfg_strength 1.8 \
     --speed 0.95
 ```
