@@ -131,7 +131,7 @@ st.markdown("""
 # -----------------------------------------------------------------------------
 # 2. Constants & Paths
 # -----------------------------------------------------------------------------
-DARJA_REPO  = "touati-kamel/f5tts-algerian-darja"
+DARJA_REPO  = "algerian-nlp/Hadra-TTS-f5"
 BASE_REPO   = "IbrahimSalah/Arabic-F5-TTS-v2"
 SAMPLE_RATE = 24000
 
@@ -226,10 +226,16 @@ def download_model_assets():
     from huggingface_hub import hf_hub_download
     ckpt = hf_hub_download(DARJA_REPO, "model_last.pt",
                            local_dir=str(CACHE_DIR), local_dir_use_symlinks=False)
-    vocab = hf_hub_download(BASE_REPO, "vocab.txt",
-                            local_dir=str(CACHE_DIR), local_dir_use_symlinks=False)
-    cfg = hf_hub_download(BASE_REPO, "F5TTS_Base_8_18.yaml",
-                          local_dir=str(CACHE_DIR), local_dir_use_symlinks=False)
+    try:
+        vocab = hf_hub_download(DARJA_REPO, "vocab.txt",
+                                local_dir=str(CACHE_DIR), local_dir_use_symlinks=False)
+        cfg = hf_hub_download(DARJA_REPO, "F5TTS_Base_8_18.yaml",
+                              local_dir=str(CACHE_DIR), local_dir_use_symlinks=False)
+    except Exception:
+        vocab = hf_hub_download(BASE_REPO, "vocab.txt",
+                                local_dir=str(CACHE_DIR), local_dir_use_symlinks=False)
+        cfg = hf_hub_download(BASE_REPO, "F5TTS_Base_8_18.yaml",
+                              local_dir=str(CACHE_DIR), local_dir_use_symlinks=False)
     base_ref = hf_hub_download(BASE_REPO, "reference.wav",
                                local_dir=str(REFS_DIR), local_dir_use_symlinks=False)
     return {"ckpt": ckpt, "vocab": vocab, "config": cfg, "base_ref": base_ref}

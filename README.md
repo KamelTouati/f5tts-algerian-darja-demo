@@ -2,7 +2,7 @@
 
 An end-to-end Text-to-Speech (TTS) adaptation framework and interactive Streamlit web application tailored for colloquial **Algerian Arabic (Darja)** using **F5-TTS** (Flow Matching with Diffusion Transformer).
 
-Fine-tuned from [IbrahimSalah/Arabic-F5-TTS-v2](https://huggingface.co/IbrahimSalah/Arabic-F5-TTS-v2) across ~399 hours of multi-domain Algerian dialectal speech on Hugging Face Hub: [touati-kamel/f5tts-algerian-darja](https://huggingface.co/touati-kamel/f5tts-algerian-darja).
+Fine-tuned from [IbrahimSalah/Arabic-F5-TTS-v2](https://huggingface.co/IbrahimSalah/Arabic-F5-TTS-v2) across ~399 hours of multi-domain Algerian dialectal speech on Hugging Face Hub: [algerian-nlp/Hadra-TTS-f5](https://huggingface.co/algerian-nlp/Hadra-TTS-f5) (also mirrored at [touati-kamel/f5tts-algerian-darja](https://huggingface.co/touati-kamel/f5tts-algerian-darja)).
 
 ---
 
@@ -104,7 +104,7 @@ python -m f5_tts.infer.infer_cli \
 | Property | Specification |
 |---|---|
 | **Base Model** | [IbrahimSalah/Arabic-F5-TTS-v2](https://huggingface.co/IbrahimSalah/Arabic-F5-TTS-v2) |
-| **Fine-Tuned Checkpoint** | [touati-kamel/f5tts-algerian-darja](https://huggingface.co/touati-kamel/f5tts-algerian-darja) (`model_last.pt`) |
+| **Fine-Tuned Checkpoint** | [algerian-nlp/Hadra-TTS-f5](https://huggingface.co/algerian-nlp/Hadra-TTS-f5) (`model_last.pt`) |
 | **Architecture** | Flow Matching DiT (`8_18` configuration: dim=1024, depth=22, heads=18) |
 | **Vocoder** | Vocos (24,000 Hz, 100 mel channels) |
 | **Training Steps** | 48,574 updates (8 Kaggle GPU sessions) |
@@ -143,11 +143,11 @@ python -m f5_tts.infer.infer_cli \
 ## Citation
 
 ```bibtex
-@misc{touati2026f5ttsdarja,
-  author = {Kamel Touati},
-  title = {F5-TTS: Adapting Diffusion Transformers for Algerian Arabic (Darja) Speech Synthesis},
-  year = {2026},
-  publisher = {Hugging Face},
-  howpublished = {\url{https://huggingface.co/touati-kamel/f5tts-algerian-darja}}
+@misc{algeriannlp2026hadrattf5,
+  author       = {Kamel Touati and Algerian NLP Community},
+  title        = {{Hadra-TTS-f5: Flow-Matching Speech Synthesis for Algerian Arabic (Darja)}},
+  year         = {2026},
+  publisher    = {Hugging Face},
+  howpublished = {\url{https://huggingface.co/algerian-nlp/Hadra-TTS-f5}},
 }
 ```
