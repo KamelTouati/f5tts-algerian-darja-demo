@@ -13,8 +13,12 @@ import tempfile
 import subprocess
 from pathlib import Path
 import numpy as np
-import torch
 import streamlit as st
+
+try:
+    import torch
+except ImportError:
+    torch = None
 
 try:
     import soundfile as sf
@@ -349,8 +353,10 @@ def run_synthesis(
 # -----------------------------------------------------------------------------
 with st.sidebar:
     st.markdown("### Custom Voice Reference")
-    device_name = "CUDA GPU" if torch.cuda.is_available() else "CPU"
+    device_name = "CUDA GPU" if (torch is not None and torch.cuda.is_available()) else "CPU"
     st.markdown(f"<span class='darja-badge'>Hardware: {device_name}</span>", unsafe_allow_html=True)
+    if torch is None:
+        st.info("Dependencies are loading. If this persists, click 'Manage app' (bottom-right) > '...' > 'Reboot app'.")
     st.caption("All 10 tries always run across Kahwa, Rawi, and Loubna voices.")
 
     st.markdown("---")
