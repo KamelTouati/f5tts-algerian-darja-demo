@@ -1,6 +1,6 @@
 # =============================================================================
 # F5-TTS Algerian Darja — Streamlit Web Application
-# Model: touati-kamel/f5tts-algerian-darja (Step 48,574)
+# Model: algerian-nlp/Hadra-TTS-f5 (Step 48,574)
 # Generates 10 audio variations per sentence so the user can pick the best.
 # Deployable to Streamlit Community Cloud, Hugging Face Spaces, or Local
 # =============================================================================
@@ -15,15 +15,44 @@ from pathlib import Path
 import numpy as np
 import streamlit as st
 
+
+def ensure_package(module_name: str, pypi_name: str = None, extra_args: list = None):
+    """Ensure a Python module can be imported. If missing, install it dynamically via pip."""
+    import importlib
+    try:
+        return importlib.import_module(module_name)
+    except ImportError:
+        pass
+
+    if pypi_name is None:
+        pypi_name = module_name.replace("_", "-")
+
+    cmd = [sys.executable, "-m", "pip", "install", "--no-cache-dir", "-q"]
+    if extra_args:
+        cmd.extend(extra_args)
+    cmd.append(pypi_name)
+
+    try:
+        subprocess.run(cmd, check=True, timeout=180)
+        importlib.invalidate_caches()
+        return importlib.import_module(module_name)
+    except Exception:
+        return None
+
+
 try:
     import torch
 except ImportError:
-    torch = None
+    torch = ensure_package(
+        "torch",
+        "torch>=2.2.0",
+        extra_args=["--extra-index-url", "https://download.pytorch.org/whl/cpu"],
+    )
 
 try:
     import soundfile as sf
 except ImportError:
-    sf = None
+    sf = ensure_package("soundfile", "soundfile>=0.12.1")
 
 
 # Optional Hugging Face Spaces ZeroGPU integration
@@ -227,21 +256,20 @@ GEN_TRIES = [
 # -----------------------------------------------------------------------------
 @st.cache_resource(show_spinner=False)
 def download_model_assets():
-    from huggingface_hub import hf_hub_download
-    ckpt = hf_hub_download(DARJA_REPO, "model_last.pt",
-                           local_dir=str(CACHE_DIR), local_dir_use_symlinks=False)
     try:
-        vocab = hf_hub_download(DARJA_REPO, "vocab.txt",
-                                local_dir=str(CACHE_DIR), local_dir_use_symlinks=False)
-        cfg = hf_hub_download(DARJA_REPO, "F5TTS_Base_8_18.yaml",
-                              local_dir=str(CACHE_DIR), local_dir_use_symlinks=False)
+        from huggingface_hub import hf_hub_download
+    except ImportError:
+        ensure_package("huggingface_hub", "huggingface-hub>=0.25.0")
+        from huggingface_hub import hf_hub_download
+
+    ckpt = hf_hub_download(DARJA_REPO, "model_last.pt", local_dir=str(CACHE_DIR))
+    try:
+        vocab = hf_hub_download(DARJA_REPO, "vocab.txt", local_dir=str(CACHE_DIR))
+        cfg = hf_hub_download(DARJA_REPO, "F5TTS_Base_8_18.yaml", local_dir=str(CACHE_DIR))
     except Exception:
-        vocab = hf_hub_download(BASE_REPO, "vocab.txt",
-                                local_dir=str(CACHE_DIR), local_dir_use_symlinks=False)
-        cfg = hf_hub_download(BASE_REPO, "F5TTS_Base_8_18.yaml",
-                              local_dir=str(CACHE_DIR), local_dir_use_symlinks=False)
-    base_ref = hf_hub_download(BASE_REPO, "reference.wav",
-                               local_dir=str(REFS_DIR), local_dir_use_symlinks=False)
+        vocab = hf_hub_download(BASE_REPO, "vocab.txt", local_dir=str(CACHE_DIR))
+        cfg = hf_hub_download(BASE_REPO, "F5TTS_Base_8_18.yaml", local_dir=str(CACHE_DIR))
+    base_ref = hf_hub_download(BASE_REPO, "reference.wav", local_dir=str(REFS_DIR))
     return {"ckpt": ckpt, "vocab": vocab, "config": cfg, "base_ref": base_ref}
 
 
@@ -250,7 +278,15 @@ def download_model_assets():
 # -----------------------------------------------------------------------------
 @st.cache_resource(show_spinner=False)
 def get_preset_references():
-    from datasets import load_dataset, Audio as AudioFeature
+    try:
+        from datasets import load_dataset, Audio as AudioFeature
+    except ImportError:
+        ensure_package("datasets", "datasets>=2.14.0")
+        try:
+            from datasets import load_dataset, Audio as AudioFeature
+        except ImportError:
+            load_dataset = None
+            AudioFeature = None
 
     presets = {
         "kahwa": {
@@ -277,6 +313,8 @@ def get_preset_references():
         if info["file"].exists() and info["file"].stat().st_size > 5000:
             continue
         try:
+            if load_dataset is None:
+                raise RuntimeError("datasets library unavailable")
             ds = load_dataset(info["ds_id"], split="train", streaming=True)
             ds = ds.cast_column("audio", AudioFeature(sampling_rate=SAMPLE_RATE))
             for item in ds:
@@ -311,6 +349,19 @@ def get_preset_references():
 # -----------------------------------------------------------------------------
 # 6. Core Inference Routine
 # -----------------------------------------------------------------------------
+def check_f5tts_installed():
+    try:
+        import f5_tts
+        return True
+    except ImportError:
+        pkg = ensure_package(
+            "f5_tts",
+            "f5-tts>=0.1.0",
+            extra_args=["--extra-index-url", "https://download.pytorch.org/whl/cpu"],
+        )
+        return pkg is not None
+
+
 def run_synthesis(
     gen_text: str,
     ref_audio: str,
@@ -323,6 +374,7 @@ def run_synthesis(
     speed: float,
     output_name: str,
 ) -> str:
+    check_f5tts_installed()
     out_file = str(CACHE_DIR / f"{output_name}_{int(time.time()*1000)}.wav")
     cmd = [
         sys.executable, "-m", "f5_tts.infer.infer_cli",
@@ -342,9 +394,10 @@ def run_synthesis(
         cmd.extend(["--ref_text", ref_text.strip()])
     res = subprocess.run(cmd, capture_output=True, text=True)
     if res.returncode != 0:
-        raise RuntimeError(res.stderr[-500:])
+        err_msg = res.stderr[-500:] if res.stderr else res.stdout[-500:]
+        raise RuntimeError(err_msg or "Inference CLI exited with an error code")
     if not Path(out_file).exists():
-        raise FileNotFoundError(out_file)
+        raise FileNotFoundError(f"Generated file not found: {out_file}")
     return out_file
 
 
@@ -465,12 +518,15 @@ if generate_btn:
             })
 
     # Load assets
-    with st.spinner("Loading model assets..."):
+    with st.spinner("Downloading and caching Hadra-TTS-f5 model checkpoint (~3.5 GB)... This only happens once."):
         try:
             assets  = download_model_assets()
             presets = get_preset_references()
         except Exception as e:
-            st.error(f"Failed to load model assets: {e}")
+            st.error(
+                f"Failed to load model assets: {e}\n\n"
+                "Tip: Click the bottom-right '...' menu and choose 'Clear cache and reboot' to ensure clean container dependencies."
+            )
             st.stop()
 
     total = len(tries_to_run)
@@ -510,8 +566,13 @@ if generate_btn:
                 output_name = t["id"],
             )
             elapsed = time.time() - t0
-            data, sr = sf.read(out_path)
-            dur = len(data) / sr
+            if sf is not None:
+                data, sr = sf.read(out_path)
+                dur = len(data) / sr
+            else:
+                import wave
+                with wave.open(out_path, "rb") as wf:
+                    dur = wf.getnframes() / float(wf.getframerate())
 
             results.append({
                 "try": t,
