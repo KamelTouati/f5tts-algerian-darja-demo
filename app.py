@@ -31,14 +31,20 @@ def ensure_package(module_name: str, pypi_name: str = None, extra_args: list = N
     # 1. uv pip install (Streamlit Cloud's default fast installer)
     uv_bin = shutil.which("uv")
     if not uv_bin:
-        for candidate in ["/home/adminuser/.cargo/bin/uv", "/usr/local/bin/uv", "/root/.cargo/bin/uv"]:
+        for candidate in [
+            "/home/adminuser/.cargo/bin/uv",
+            "/home/adminuser/.local/bin/uv",
+            "/usr/local/bin/uv",
+            "/root/.cargo/bin/uv",
+        ]:
             if Path(candidate).exists():
                 uv_bin = candidate
                 break
     if uv_bin:
-        uv_cmd = [str(uv_bin), "pip", "install", "--python", sys.executable, pypi_name]
+        uv_cmd = [str(uv_bin), "pip", "install", "--python", sys.executable]
         if extra_args:
             uv_cmd.extend(extra_args)
+        uv_cmd.append(pypi_name)
         cmds.append(uv_cmd)
 
     # 2. python -m pip
