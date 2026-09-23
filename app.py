@@ -12,11 +12,15 @@ import shutil
 import tempfile
 import subprocess
 from pathlib import Path
-
 import numpy as np
-import soundfile as sf
 import torch
 import streamlit as st
+
+try:
+    import soundfile as sf
+except ImportError:
+    sf = None
+
 
 # Optional Hugging Face Spaces ZeroGPU integration
 try:
@@ -272,7 +276,16 @@ def get_preset_references():
                 waveform = audio_obj["array"]
                 dur = len(waveform) / audio_obj["sampling_rate"]
                 if 4.0 <= dur <= 8.0:
-                    sf.write(str(info["file"]), waveform.astype(np.float32), SAMPLE_RATE)
+                    if sf is not None:
+                        sf.write(str(info["file"]), waveform.astype(np.float32), SAMPLE_RATE)
+                    else:
+                        import wave
+                        with wave.open(str(info["file"]), "wb") as wf:
+                            wf.setnchannels(1)
+                            wf.setsampwidth(2)
+                            wf.setframerate(SAMPLE_RATE)
+                            int16_data = (np.clip(waveform, -1.0, 1.0) * 32767).astype(np.int16)
+                            wf.writeframes(int16_data.tobytes())
                     raw_txt = item.get("transcript_text") or item.get("text")
                     if raw_txt and len(raw_txt.split()) >= 4:
                         info["text"] = raw_txt.strip()
