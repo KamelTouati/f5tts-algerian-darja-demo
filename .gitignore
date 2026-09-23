@@ -1,3 +1,10 @@
+# Scripts not needed for Streamlit web app (training, evaluation, CLI)
+prepare_dataset.py
+train.py
+train_kaggle.py
+test_kaggle.py
+infer.py
+
 # Byte-compiled / cache files
 __pycache__/
 *.py[cod]
