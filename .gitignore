@@ -1,0 +1,39 @@
+# Byte-compiled / cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Audio files & temporary outputs
+*.wav
+*.mp3
+*.ogg
+*.flac
+outputs/
+f5tts_test/
+f5tts_darja_winning_outputs/
+kaggle_working/
+kaggle_tmp/
+f5_dataset_darja/
+ckpts_f5tts/
+*.zip
+
+# Model checkpoints & weights (stored on Hugging Face Hub)
+*.pt
+*.bin
+*.safetensors
+*.onnx
+model/
+refs/
+.cache/
+
+# Environments
+.env
+.venv
+env/
+venv/
+
+# IDE & OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
